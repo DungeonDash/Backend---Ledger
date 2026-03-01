@@ -1,6 +1,6 @@
 import userModel from "../models/user.model.js"
 import jwt from "jsonwebtoken"
-import emailService from "../services/email.service.js"
+import {sendRegistrationEmail} from "../services/email.service.js"
 
 
 /**
@@ -31,7 +31,7 @@ const registerController = async (req, res)=>{
 
     res.status(201).json({message: "User registered successfully", status:"success", token, user: newUser})
 
-    await emailService(newUser.email, newUser.name)
+    await sendRegistrationEmail(newUser.email, newUser.name)
 
 }
 

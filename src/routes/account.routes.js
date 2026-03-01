@@ -1,5 +1,6 @@
 import express from "express"
-import authMiddleware from "../middlewares/auth.middleware"
+import {authMiddleware} from "../middlewares/auth.middleware.js"
+import {createAccountController} from "../controller/account.controller.js"
 
 const router = express.Router()
 
@@ -10,7 +11,7 @@ const router = express.Router()
 * - Protected Route
 */
 
-router.post("/",authMiddleware,)
+router.post("/", authMiddleware, createAccountController)
 
 
 export default router

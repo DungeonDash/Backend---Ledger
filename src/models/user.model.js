@@ -18,6 +18,14 @@ const userSchema = new mongoose.Schema({
         required:[true, "Name is required"],
 
     },
+
+    systemUser:{
+        type:Boolean,
+        default:false,
+        immutable:true,
+        select:false
+    },
+
     password:{
         type:String,
         required:[true, "Password is required"],
