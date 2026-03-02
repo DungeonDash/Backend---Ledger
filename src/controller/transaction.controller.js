@@ -24,7 +24,7 @@ async function createTransactionController(req, res) {
     const toAcc = await accountModel.findById({_id:toAccount})
 
     if (!fromAcc || !toAcc){
-        res.status(400).json({message:"Invalid From or To Account", status:"Failed"})
+        return res.status(400).json({message:"Invalid From or To Account", status:"Failed"})
     }
 
 
@@ -51,7 +51,7 @@ async function createTransactionController(req, res) {
 
 
 // Account Status Check
-    if (fromAcc.status !== "active" || toAcc.status !== "active"){
+    if (fromAcc.status !== "Active" || toAcc.status !== "Active"){
         return res.status(400).json({message:"Both accounts must be active to perform transactions", status:"failed"})
     }
 
@@ -71,29 +71,29 @@ async function createTransactionController(req, res) {
     session.startTransaction()
 
 
-    const transaction = await txnModel.create({
+    const transaction = new txnModel({
         fromAccount,
         toAccount,
         amount,
         idempotencyKey,
         status:"Pending"
-    }, {session})
+    })
 
 
-    const debitLedgerEntry = await ledgerModel.create({
+    const debitLedgerEntry = await ledgerModel.create([{
         account: fromAcc,
         type: "Debit",
         amount,
         transaction: transaction._id
-    }, {session})
+    }], {session})
 
 
-    const creditLedgerEntry = await ledgerModel.create({
+    const creditLedgerEntry = await ledgerModel.create([{
         account: toAcc,
         type: "Credit",
         amount,
         transaction: transaction._id
-    }, {session})
+    }], {session})
 
 
     transaction.status = "Completed"
@@ -113,8 +113,72 @@ async function createTransactionController(req, res) {
 }
 
 
+async function createInitialFundsController(req,res){
+
+    const {toAccount, amount, idempotencyKey} = req.body
+
+    if (!toAccount || !amount || !idempotencyKey){
+        return res.status(400).json({message:"All details are required", status:"failed"})
+    }
+
+    // console.log("Searching for account with ID:", toAccount)
+    const toUserAcc = await accountModel.findOne({_id: toAccount})
+    // console.log("Found account:", toUserAcc)
+
+    if(!toUserAcc){
+        return res.status(400).json({message:"Invalid to-Account", status:"failed"})
+    }
+
+    const fromSystemAcc = await accountModel.findOne({ user: req.user._id})
+
+    if(!fromSystemAcc){
+        return res.status(400).json({message:"System account not found for the user", status:"failed"})
+    }
+
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+
+    const transaction = new txnModel({
+        fromAccount: fromSystemAcc._id,
+        toAccount,
+        amount,
+        idempotencyKey,
+        status:"Pending"
+    })
+
+    // console.log(transaction)
+
+    const debitLedgerEntry = await ledgerModel.create([{
+        account: fromSystemAcc._id,
+        amount: amount,
+        transaction: transaction._id,
+        type: "Debit"
+    }], {session})
+
+
+    const creditLedgerEntry = await ledgerModel.create([{
+        account: toAccount,
+        amount,
+        transaction: transaction._id,
+        type: "Credit"
+    }], {session})
+
+
+    transaction.status = "Completed"
+    await transaction.save({session})
+
+    await session.commitTransaction()
+    session.endSession()
+
+    res.status(201).json({message:"Initial Funds transaction completed successfully", status:"success", transaction})
+
+
+}
 
 
 export {
-    createTransactionController
+    createTransactionController,
+    createInitialFundsController
 }
