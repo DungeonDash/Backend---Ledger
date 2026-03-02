@@ -1,5 +1,7 @@
 import userModel from "../models/user.model.js"
 import jwt from "jsonwebtoken"
+import tokenBlacklistModel from "../models/blacklist.model.js"
+
 
 
 
@@ -10,6 +12,12 @@ async function authMiddleware(req, res, next){
 
     if (!token){
         return res.status(401).json({message: "Unauthorized", status:"failed"})
+    }
+
+    const isBlacklisted = await tokenBlacklistModel.findOne({token})
+
+    if(isBlacklisted){
+        return res.status(401).json({message: "User token is blacklisted. Please login again."})
     }
 
 
@@ -34,6 +42,12 @@ async function authSystemUserMiddleware(req,res,next){
 
     if (!token){
         return res.status(401).json({message: "Unauthorized", status:"failed"})
+    }
+
+    const isBlacklisted = await tokenBlacklistModel.findOne({token})
+
+    if(isBlacklisted){
+        return res.status(401).json({message: "User token is blacklisted. Please login again."})
     }
 
     try{
