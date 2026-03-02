@@ -10,6 +10,11 @@ const app = express();
 app.use(express.json())
 app.use(cookieParser())
 
+
+app.use("/", (req, res)=>{
+    res.send("Ledger Service is running")
+})
+
 app.use("/api/auth", authRoutes)
 app.use("/api/accounts", accountRoutes)
 app.use("/api/transactions", transactionRoutes)
